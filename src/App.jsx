@@ -14,9 +14,9 @@ function App() {
   return (
     <div>
       <nav style={navStyle}>
-        <button onClick={() => setPage('trade')} style={navButtonStyle}>💱 兑换</button>
-        <button onClick={() => setPage('history')} style={navButtonStyle}>📄 交易记录</button>
-        <button onClick={() => setPage('liquidity')} style={navButtonStyle}>💧 添加流动性</button>
+        <button onClick={() => setPage('trade')} style={navButtonStyle}>💱 Swap</button>
+        <button onClick={() => setPage('history')} style={navButtonStyle}>📄 Transcation Records</button>
+        <button onClick={() => setPage('liquidity')} style={navButtonStyle}>💧 Liquidity Managment</button>
       </nav>
 
       {page === 'trade' && <TradePage onAddRecord={addRecord} />}

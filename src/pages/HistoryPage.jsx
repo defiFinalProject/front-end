@@ -1,31 +1,72 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { initContracts } from '../contract';
+import { ethers } from 'ethers';
 
-export default function HistoryPage({ records }) {
+export default function HistoryPage() {
+  const [records, setRecords] = useState([]);
+
+  useEffect(() => {
+    const loadSwapHistory = async () => {
+      try {
+        const { tokenA, tokenB, sumPoolContract } = await initContracts();
+        const provider = sumPoolContract.provider;
+
+        const swapEvents = await sumPoolContract.queryFilter("Swap");
+
+        const parsed = await Promise.all(
+          swapEvents.map(async (event) => {
+            const block = await provider.getBlock(event.blockNumber);
+            const time = new Date(block.timestamp * 1000).toLocaleString();
+            const fromToken = event.args.fromToken;
+            const toToken = event.args.toToken;
+
+            const fromName = fromToken === tokenA.address ? "TokenA" : "TokenB";
+            const toName = toToken === tokenA.address ? "TokenA" : "TokenB";
+
+            return {
+              time,
+              type: "Swap",
+              from: `${ethers.utils.formatUnits(event.args.amountIn, 18)} (${fromName})`,
+              to: `${ethers.utils.formatUnits(event.args.amountOut, 18)} (${toName})`,
+              wallet: event.args.user,
+            };
+          })
+        );
+
+        setRecords(parsed.reverse()); // 最新的排前面
+      } catch (err) {
+        console.error("❌ 加载交易记录失败:", err);
+      }
+    };
+
+    loadSwapHistory();
+  }, []);
+
   return (
     <div style={wrapperStyle}>
       <div style={contentBox}>
-        <h2 style={title}>交易记录</h2>
+        <h2 style={title}>Transcation Records</h2>
         {records.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#777' }}>暂无交易记录</p>
+          <p style={{ textAlign: 'center', color: '#777' }}>No transaction record</p>
         ) : (
           <table style={tableStyle}>
             <thead>
               <tr style={headerRow}>
-                <th>时间</th>
-                <th>类型</th>
-                <th>出售</th>
-                <th>购买</th>
-                <th>钱包</th>
+                <th style={cellStyle}>Time</th>
+                <th style={cellStyle}>Type</th>
+                <th style={cellStyle}>Sell</th>
+                <th style={cellStyle}>Buy</th>
+                <th style={cellStyle}>Wallet</th>
               </tr>
             </thead>
             <tbody>
               {records.map((tx, index) => (
                 <tr key={index} style={rowStyle}>
-                  <td>{tx.time}</td>
-                  <td>{tx.type}</td>
-                  <td>{tx.from}</td>
-                  <td>{tx.to}</td>
-                  <td>{tx.wallet}</td>
+                  <td style={cellStyle}>{tx.time}</td>
+                  <td style={cellStyle}>{tx.type}</td>
+                  <td style={cellStyle}>{tx.from}</td>
+                  <td style={cellStyle}>{tx.to}</td>
+                  <td style={cellStyle}>{tx.wallet}</td>
                 </tr>
               ))}
             </tbody>
@@ -36,7 +77,6 @@ export default function HistoryPage({ records }) {
   );
 }
 
-// 样式
 const wrapperStyle = {
   width: '100vw',
   height: '100vh',
@@ -51,14 +91,14 @@ const wrapperStyle = {
 
 const contentBox = {
   width: '100%',
-  maxWidth: '800px',
+  maxWidth: '960px',
   padding: '0 20px',
 };
 
 const title = {
-  fontSize: '26px',
+  fontSize: '30px',
   color: '#5f42c2',
-  marginBottom: '20px',
+  marginBottom: '28px',
   textAlign: 'center',
 };
 
@@ -74,11 +114,14 @@ const tableStyle = {
 const headerRow = {
   backgroundColor: '#e4d7ff',
   color: '#3e2a87',
-  textAlign: 'left',
-  padding: '14px',
 };
 
 const rowStyle = {
-  padding: '12px',
   borderBottom: '1px solid #ddd',
+  height: '56px',
+};
+
+const cellStyle = {
+  padding: '18px',
+  fontSize: '16px',
 };

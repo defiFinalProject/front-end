@@ -10,20 +10,38 @@ export default function LiquidityPage() {
   const [tokenA, setTokenA] = useState(null);
   const [tokenB, setTokenB] = useState(null);
   const [sumPoolContract, setSumPoolContract] = useState(null);
+  const [balanceA, setBalanceA] = useState('');
+  const [balanceB, setBalanceB] = useState('');
+  const [removeShare, setRemoveShare] = useState('');
+  const [expectedRemoveA, setExpectedRemoveA] = useState('');
+  const [expectedRemoveB, setExpectedRemoveB] = useState('');
 
+  const loadBalances = async () => {
+    if (sumPoolContract && tokenA && tokenB) {
+      const balA = await sumPoolContract.getTokenBalance(tokenA.address);
+      const balB = await sumPoolContract.getTokenBalance(tokenB.address);
+      setBalanceA(ethers.utils.formatUnits(balA, 18));
+      setBalanceB(ethers.utils.formatUnits(balB, 18));
+    }
+  };
   useEffect(() => {
     const loadContracts = async () => {
       const { tokenA, tokenB, sumPoolContract } = await initContracts();
       setTokenA(tokenA);
       setTokenB(tokenB);
       setSumPoolContract(sumPoolContract);
+      await loadBalances();
+      // const balA = await sumPoolContract.getTokenBalance(tokenA.address);
+      // const balB = await sumPoolContract.getTokenBalance(tokenB.address);
+      // setBalanceA(ethers.utils.formatUnits(balA, 18));
+      // setBalanceB(ethers.utils.formatUnits(balB, 18));
     };
     loadContracts();
   }, []);
 
   const connectWallet = async () => {
     if (!window.ethereum) {
-      alert('请先安装 MetaMask');
+      alert('Please install MetaMask');
       return;
     }
     try {
@@ -31,16 +49,18 @@ export default function LiquidityPage() {
       setWallet(accounts[0]);
     } catch (err) {
       console.error(err);
-      alert('连接钱包失败');
+      alert('Error connecting the wallet');
     }
   };
+
+  
 
   const handleAmountAChange = (e) => {
     const a = e.target.value;
     setAmountA(a);
     if (!isNaN(a) && a !== '') {
       const aFloat = parseFloat(a);
-      setAmountB((aFloat * 1).toFixed(6)); // 1:1 比例
+      setAmountB((aFloat * 1).toFixed(6));
     } else {
       setAmountB('');
     }
@@ -48,7 +68,7 @@ export default function LiquidityPage() {
 
   const handleAddLiquidity = async () => {
     if (!wallet || !tokenA || !tokenB || !sumPoolContract) {
-      alert('请确保钱包和合约已连接');
+      alert('Make sure the wallet and contract are connected');
       return;
     }
 
@@ -61,42 +81,102 @@ export default function LiquidityPage() {
 
       const tx = await sumPoolContract.addLiquidity(a, b);
       await tx.wait();
-
-      setMessage(`✅ 成功添加 ${amountA} A + ${amountB} B`);
+      
+      setMessage(`✅ Successfully add ${amountA} A + ${amountB} B`);
+      await loadBalances();
     } catch (err) {
       console.error(err);
-      alert('❌ 添加失败，请检查余额或授权');
+      alert('❌ Add failed, check balance or authorization');
+    }
+  };
+
+  const handleRemoveShareChange = (e) => {
+    const share = e.target.value;
+    setRemoveShare(share);
+    if (!isNaN(share) && share !== '' && balanceA && balanceB) {
+      const totalLiquidity = parseFloat(balanceA) + parseFloat(balanceB);
+      const fraction = parseFloat(share) / totalLiquidity;
+      const tokenAOut = parseFloat(balanceA) * fraction;
+      const tokenBOut = parseFloat(balanceB) * fraction;
+      setExpectedRemoveA(tokenAOut.toFixed(6));
+      setExpectedRemoveB(tokenBOut.toFixed(6));
+    } else {
+      setExpectedRemoveA('');
+      setExpectedRemoveB('');
+    }
+  };
+
+  const handleRemoveLiquidity = async () => {
+    if (!wallet || !sumPoolContract || !removeShare) return;
+    try {
+      const shareAmount = ethers.utils.parseUnits(removeShare, 18);
+      const tx = await sumPoolContract.removeLiquidity(shareAmount);
+      await tx.wait();
+      setMessage(`✅ Successfully remove ${removeShare} shares`);
+      await loadBalances();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Removal failed, check input or balance");
     }
   };
 
   return (
     <div style={wrapperStyle}>
       <div style={cardStyle}>
-        <h2 style={titleStyle}>添加流动性</h2>
+        <h2 style={titleStyle}>Add liquidity</h2>
 
         <div style={inputGroup}>
-          <label>TokenA 数量：</label>
+          <label>TokenA ：</label>
           <input
             type="number"
             value={amountA}
             onChange={handleAmountAChange}
-            placeholder="输入 TokenA 数量"
+            placeholder="Input the number of TokenA: "
             style={inputStyle}
           />
         </div>
 
         <div style={inputGroup}>
-          <label>自动计算：</label>
+          <label>Automatic calculation:</label>
           <p>TokenB: <strong>{amountB}</strong></p>
         </div>
 
-        <button onClick={handleAddLiquidity} style={buttonStyle}>添加流动性</button>
+        <button onClick={handleAddLiquidity} style={buttonStyle}>Add liquidity</button>
+      </div>
 
-        <div style={{ marginTop: '16px' }}>
-          <button onClick={connectWallet} style={connectButtonStyle}>
-            {wallet ? `已连接：${wallet.slice(0, 6)}...${wallet.slice(-4)}` : '连接钱包'}
-          </button>
+      <div style={cardStyle}>
+        <h2 style={titleStyle}>Remove liquidity</h2>
+
+        <div style={inputGroup}>
+          <label>Enter the share to be removed：</label>
+          <input
+            type="number"
+            value={removeShare}
+            onChange={handleRemoveShareChange}
+            placeholder="Enter the proporation of shares"
+            style={inputStyle}
+          />
         </div>
+
+        {expectedRemoveA && expectedRemoveB && (
+          <div style={inputGroup}>
+            <p>💧 Expected to be taken out:</p>
+            <p>TokenA: <strong>{expectedRemoveA}</strong></p>
+            <p>TokenB: <strong>{expectedRemoveB}</strong></p>
+          </div>
+        )}
+
+        <button onClick={handleRemoveLiquidity} style={buttonStyle}>Confirmation</button>
+      </div>
+      <div style={cardStyle}>
+  <h2 style={titleStyle}>Current liquidity of the pool</h2>
+  <p>📦 TokenA reverse：<strong>{balanceA}</strong></p>
+  <p>📦 TokenB reverse<strong>{balanceB}</strong></p>
+</div>
+      <div style={{ marginTop: '24px', width: '480px' }}>
+        <button onClick={connectWallet} style={connectButtonStyle}>
+          {wallet ? `connect：${wallet.slice(0, 6)}...${wallet.slice(-4)}` : 'Connect Wallet'}
+        </button>
 
         {message && (
           <p style={{ marginTop: '18px', fontWeight: 'bold', color: '#4CAF50' }}>
@@ -107,16 +187,25 @@ export default function LiquidityPage() {
     </div>
   );
 }
-
-
 const wrapperStyle = {
   width: '100vw',
-  height: '100vh',
+  // height: '100vh',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
+  flexDirection: 'column',
   backgroundColor: '#fafafa',
   fontFamily: 'Arial, sans-serif',
+  margin: 0,
+  padding: 0,
+};
+
+const cardsRowStyle = {
+  display: 'flex',
+  flexDirection: 'row',
+  gap: '64px',
+  justifyContent: 'center',
+  alignItems: 'flex-start',
 };
 
 const cardStyle = {
@@ -132,7 +221,7 @@ const titleStyle = {
   marginBottom: '28px',
   fontSize: '24px',
   color: '#6c4ccf',
-  fontWeight: 'bold'
+  fontWeight: 'bold',
 };
 
 const inputGroup = {
@@ -160,7 +249,7 @@ const buttonStyle = {
 };
 
 const connectButtonStyle = {
-  width: '100%',
+  width: '320px',
   padding: '12px',
   backgroundColor: '#d9cfff',
   color: '#4a2b8c',

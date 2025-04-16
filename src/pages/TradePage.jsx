@@ -72,18 +72,18 @@ export default function TradePage() {
 
       setSwapSuccess(true);
     } catch (err) {
-      console.error("❌ 兑换失败:", err);
-      alert("兑换失败，请确认授权和余额");
+      console.error("❌ Failure to exchange:", err);
+      alert("Failure to exchange, please check the console for details.");
     }
   };
 
   return (
     <div style={wrapperStyle}>
       <div style={cardStyle}>
-        <h2 style={titleStyle}>💱 Token 兑换</h2>
+        <h2 style={titleStyle}>💱 Token exchange </h2>
 
         <div style={inputGroup}>
-          <label>出售代币：</label>
+          <label>Sell tokens: </label>
           <select value={fromToken} onChange={e => setFromToken(e.target.value)} style={selectStyle}>
             <option value="TokenA">TokenA</option>
             <option value="TokenB">TokenB</option>
@@ -91,7 +91,7 @@ export default function TradePage() {
         </div>
 
         <div style={inputGroup}>
-          <label>购买代币：</label>
+          <label>Buy tokens：</label>
           <select value={toToken} onChange={e => setToToken(e.target.value)} style={selectStyle}>
             <option value="TokenA">TokenA</option>
             <option value="TokenB">TokenB</option>
@@ -106,24 +106,24 @@ export default function TradePage() {
           style={inputStyle}
         />
 
-        <button onClick={handleEstimate} style={buttonStyle}>预估兑换</button>
+        <button onClick={handleEstimate} style={buttonStyle}>Exchange Estimated</button>
 
         {!walletAddress ? (
-          <button onClick={connectWallet} style={connectButtonStyle}>连接钱包</button>
+          <button onClick={connectWallet} style={connectButtonStyle}>Connect Wallets</button>
         ) : (
-          <p style={{ marginTop: "10px" }}>✅ 已连接：{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
+          <p style={{ marginTop: "10px" }}>Connected:{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
         )}
 
         {estimatedAmount && (
           <div style={resultBoxStyle}>
-            <p>预估兑换：<strong>{estimatedAmount} {toToken}</strong></p>
-            <p>手续费：<strong>{fee}</strong></p>
-            <p>最终到账：<strong>{finalAmount} {toToken}</strong></p>
-            <button onClick={handleConfirm} style={confirmButtonStyle}>确认兑换</button>
+            <p>Exchange Estimated: <strong>{estimatedAmount} {toToken}</strong></p>
+            <p> Handling fee：<strong>{fee}</strong></p>
+            <p>Finalization of accounts：<strong>{finalAmount} {toToken}</strong></p>
+            <button onClick={handleConfirm} style={confirmButtonStyle}>Confirmation</button>
           </div>
         )}
 
-        {swapSuccess && <p style={{ color: "green", marginTop: "12px" }}>✅ 兑换成功！</p>}
+        {swapSuccess && <p style={{ color: "green", marginTop: "12px" }}>✅ The exchange was successful!</p>}
       </div>
     </div>
   );
