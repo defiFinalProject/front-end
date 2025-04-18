@@ -69,7 +69,7 @@ export default function TradePage() {
 
       const tx = await sumPoolContract.swap(from.address, to.address, amountIn);
       await tx.wait();
-
+      console.log(`Transaction successful! You received: ${finalAmount} ${toToken}`);
       setSwapSuccess(true);
     } catch (err) {
       console.error("❌ Failure to exchange:", err);
